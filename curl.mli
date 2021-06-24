@@ -334,6 +334,15 @@ type curlPostRedir =
 | REDIR_POST_302
 | REDIR_POST_303 (** added in libcurl 7.26.0 *)
 
+
+type curlSslOption =
+  | CURLSSLOPT_ALLOW_BEAST
+  | CURLSSLOPT_NO_REVOKE
+  | CURLSSLOPT_NO_PARTIALCHAIN
+  | CURLSSLOPT_REVOKE_BEST_EFFORT
+  | CURLSSLOPT_NATIVE_CA
+  | CURLSSLOPT_AUTO_CLIENT_CERT
+
 type curlOption =
   | CURLOPT_WRITEFUNCTION of (string -> int)
   | CURLOPT_READFUNCTION of (int -> string)
@@ -483,6 +492,7 @@ type curlOption =
       the public key sent by the remote host. If the function raises an
       exception the key will be rejected, and the connection will fail.**)
   | CURLOPT_BUFFERSIZE of int
+  | CURLOPT_SSL_OPTIONS of curlSslOption list
 
 type initOption =
   | CURLINIT_GLOBALALL
@@ -538,6 +548,25 @@ type curlInfoResult =
   | CURLINFO_StringListList of string list list
   | CURLINFO_Socket of Unix.file_descr
 
+type curlSslBackend =
+  | CURLSSLBACKEND_NONE
+  | CURLSSLBACKEND_OPENSSL
+  | CURLSSLBACKEND_GNUTLS
+  | CURLSSLBACKEND_NSS
+  | CURLSSLBACKEND_GSKIT
+  | CURLSSLBACKEND_WOLFSSL
+  | CURLSSLBACKEND_SCHANNEL
+  | CURLSSLBACKEND_SECURETRANSPORT
+  | CURLSSLBACKEND_MBEDTLS
+  | CURLSSLBACKEND_MESALINK
+  | CURLSSLBACKEND_BEARSSL
+
+type curlSslSet =
+  | CURLSSLSET_OK
+  | CURLSSLSET_UNKNOWN_BACKEND
+  | CURLSSLSET_TOO_LATE
+  | CURLSSLSET_NO_BACKENDS
+
 type version_info = {
   version : string;
   number : int * int * int;
@@ -554,6 +583,16 @@ type version_info = {
 }
 
 type pauseOption = PAUSE_SEND | PAUSE_RECV | PAUSE_ALL
+
+(** {2 MultiSSL mode } *)
+
+exception CurlSslSetException of (curlSslSet * string)
+
+val global_sslset : curlSslBackend -> unit
+(** @since 7.56.0 *)
+
+val global_sslsetavail : unit -> curlSslBackend list
+(** @since 7.56.0 *)
 
 (** {2 curl_easy API} *)
 
@@ -719,6 +758,7 @@ val set_proxytype : t -> curlProxyType -> unit
 val set_protocols : t -> curlProto list -> unit
 val set_redirprotocols : t -> curlProto list -> unit
 val set_buffersize : t -> int -> unit
+val set_ssl_options : t -> curlSslOption list -> unit
 
 (** [set_resolve t add del] adjusts builtin dns mapping
 
@@ -935,6 +975,7 @@ class handle :
     method set_sshknownhosts : string -> unit
     method set_sshkeyfunction : (curlKHMatch -> string -> curlKHStat) -> unit
     method set_buffersize : int -> unit
+    method set_ssl_options : curlSslOption list -> unit
 
     method get_effectiveurl : string
     method get_redirecturl : string
